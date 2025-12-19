@@ -28,18 +28,18 @@ impl UserRepository for PostgresUserRepository {
             WHERE id = $1
             "#,
         )
-            .bind(id)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|_| UserRepositoryError::Unknown)?;
+        .bind(id)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|_| UserRepositoryError::Unknown)?;
 
         let row = match row {
             Some(r) => r,
             None => return Err(UserRepositoryError::NotFound),
         };
 
-        let name = UserName::new(row.get::<String, _>("name"))
-            .map_err(|_| UserRepositoryError::Domain)?;
+        let name =
+            UserName::new(row.get::<String, _>("name")).map_err(|_| UserRepositoryError::Domain)?;
 
         let email = UserEmail::new(row.get::<String, _>("email"))
             .map_err(|_| UserRepositoryError::Domain)?;
@@ -52,10 +52,7 @@ impl UserRepository for PostgresUserRepository {
         ))
     }
 
-    async fn find_by_email(
-        &self,
-        email: &str,
-    ) -> Result<User, UserRepositoryError> {
+    async fn find_by_email(&self, email: &str) -> Result<User, UserRepositoryError> {
         let row = sqlx::query(
             r#"
             SELECT id, name, email, password_hash
@@ -63,18 +60,18 @@ impl UserRepository for PostgresUserRepository {
             WHERE email = $1
             "#,
         )
-            .bind(email)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|_| UserRepositoryError::Unknown)?;
+        .bind(email)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|_| UserRepositoryError::Unknown)?;
 
         let row = match row {
             Some(r) => r,
             None => return Err(UserRepositoryError::NotFound),
         };
 
-        let name = UserName::new(row.get::<String, _>("name"))
-            .map_err(|_| UserRepositoryError::Domain)?;
+        let name =
+            UserName::new(row.get::<String, _>("name")).map_err(|_| UserRepositoryError::Domain)?;
 
         let email = UserEmail::new(row.get::<String, _>("email"))
             .map_err(|_| UserRepositoryError::Domain)?;
@@ -94,12 +91,12 @@ impl UserRepository for PostgresUserRepository {
             VALUES ($1, $2, $3, $4)
             "#,
         )
-            .bind(user.id())
-            .bind(user.name().value())
-            .bind(user.email().value())
-            .bind(user.password_hash())
-            .execute(&self.pool)
-            .await;
+        .bind(user.id())
+        .bind(user.name().value())
+        .bind(user.email().value())
+        .bind(user.password_hash())
+        .execute(&self.pool)
+        .await;
 
         match result {
             Ok(_) => Ok(()),
@@ -120,15 +117,17 @@ impl UserRepository for PostgresUserRepository {
         let result = sqlx::query(
             r#"
         UPDATE users
-        SET name = $2
+        SET name = $2,
+        password_hash = $3
         WHERE id = $1
         "#,
         )
-            .bind(user.id())
-            .bind(user.name().value())
-            .execute(&self.pool)
-            .await
-            .map_err(|_| UserRepositoryError::Unknown)?;
+        .bind(user.id())
+        .bind(user.name().value())
+        .bind(user.password_hash())
+        .execute(&self.pool)
+        .await
+        .map_err(|_| UserRepositoryError::Unknown)?;
 
         if result.rows_affected() == 0 {
             return Err(UserRepositoryError::NotFound);
@@ -136,5 +135,4 @@ impl UserRepository for PostgresUserRepository {
 
         Ok(())
     }
-
 }

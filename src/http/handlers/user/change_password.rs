@@ -23,6 +23,7 @@ pub async fn change_password(
 ) -> Result<Json<ApiResponse<()>>, ApiError> {
     let use_case = ChangePasswordUseCase::new(
         state.user_repo.clone(),
+        state.refresh_token_repo.clone(),
         state.password_hasher.clone(),
     );
 

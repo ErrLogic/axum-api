@@ -26,14 +26,14 @@ impl RefreshTokenRepository for PostgresRefreshTokenRepository {
             VALUES ($1, $2, $3, $4, $5)
             "#,
         )
-            .bind(token.id)
-            .bind(token.user_id)
-            .bind(token.token)
-            .bind(token.expires_at)
-            .bind(token.revoked_at)
-            .execute(&self.pool)
-            .await
-            .map_err(|_| RefreshTokenRepositoryError::Unexpected)?;
+        .bind(token.id)
+        .bind(token.user_id)
+        .bind(token.token)
+        .bind(token.expires_at)
+        .bind(token.revoked_at)
+        .execute(&self.pool)
+        .await
+        .map_err(|_| RefreshTokenRepositoryError::Unexpected)?;
 
         Ok(())
     }
@@ -49,10 +49,10 @@ impl RefreshTokenRepository for PostgresRefreshTokenRepository {
             WHERE token = $1
             "#,
         )
-            .bind(token)
-            .fetch_optional(&self.pool)
-            .await
-            .map_err(|_| RefreshTokenRepositoryError::Unexpected)?;
+        .bind(token)
+        .fetch_optional(&self.pool)
+        .await
+        .map_err(|_| RefreshTokenRepositoryError::Unexpected)?;
 
         let row = match row {
             Some(r) => r,
@@ -76,14 +76,31 @@ impl RefreshTokenRepository for PostgresRefreshTokenRepository {
             WHERE id = $1
             "#,
         )
-            .bind(id)
-            .execute(&self.pool)
-            .await
-            .map_err(|_| RefreshTokenRepositoryError::Unexpected)?;
+        .bind(id)
+        .execute(&self.pool)
+        .await
+        .map_err(|_| RefreshTokenRepositoryError::Unexpected)?;
 
         if result.rows_affected() == 0 {
             return Err(RefreshTokenRepositoryError::NotFound);
         }
+
+        Ok(())
+    }
+
+    async fn revoke_by_user(&self, user_id: Uuid) -> Result<(), RefreshTokenRepositoryError> {
+        sqlx::query(
+            r#"
+            UPDATE refresh_tokens
+            SET revoked_at = NOW()
+            WHERE user_id = $1
+                AND revoked_at IS NULL
+            "#,
+        )
+        .bind(user_id)
+        .execute(&self.pool)
+        .await
+        .map_err(|_| RefreshTokenRepositoryError::Unexpected)?;
 
         Ok(())
     }

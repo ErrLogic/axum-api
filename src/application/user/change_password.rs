@@ -2,9 +2,10 @@ use std::sync::Arc;
 use thiserror::Error;
 use uuid::Uuid;
 
+use crate::domain::auth::repository::RefreshTokenRepository;
 use crate::{
     application::security::{password_hasher::PasswordHasher, password_policy::PasswordPolicy},
-    domain::user::repository::{UserRepository, UserRepositoryError},
+    domain::user::repository::UserRepository,
 };
 
 #[derive(Debug, Error)]
@@ -30,22 +31,20 @@ pub struct ChangePasswordCommand {
 
 pub struct ChangePasswordUseCase {
     repo: Arc<dyn UserRepository>,
+    refresh_repo: Arc<dyn RefreshTokenRepository>,
     hasher: Arc<dyn PasswordHasher>,
 }
 
 impl ChangePasswordUseCase {
     pub fn new(
         repo: Arc<dyn UserRepository>,
+        refresh_repo: Arc<dyn RefreshTokenRepository>,
         hasher: Arc<dyn PasswordHasher>,
     ) -> Self {
-        Self { repo, hasher }
+        Self { repo, refresh_repo, hasher }
     }
 
-    pub async fn execute(
-        &self,
-        cmd: ChangePasswordCommand,
-    ) -> Result<(), ChangePasswordError> {
-
+    pub async fn execute(&self, cmd: ChangePasswordCommand) -> Result<(), ChangePasswordError> {
         let mut user = self
             .repo
             .find_by_id(cmd.user_id)
@@ -78,6 +77,11 @@ impl ChangePasswordUseCase {
         // 5️⃣ persist
         self.repo
             .update(&user)
+            .await
+            .map_err(|_| ChangePasswordError::Unexpected)?;
+
+        self.refresh_repo
+            .revoke_by_user(cmd.user_id)
             .await
             .map_err(|_| ChangePasswordError::Unexpected)?;
 
