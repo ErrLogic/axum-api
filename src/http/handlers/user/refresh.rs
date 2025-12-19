@@ -32,30 +32,25 @@ pub async fn refresh_token(
         state.config.refresh_token_ttl_seconds,
     );
 
-    let result = use_case.execute(payload.refresh_token).await.map_err(|e| match e {
-        RefreshAccessTokenError::InvalidToken => ApiError::Unauthorized {
-            code: "INVALID_REFRESH_TOKEN",
-            message: "invalid or expired refresh token",
-        },
-        _ => ApiError::Internal {
-            code: "REFRESH_FAILED",
-            message: "failed to refresh token",
-        },
-    })?;
-
-    let access_token = state
-        .jwt_service
-        .generate(result.user_id)
-        .map_err(|_| ApiError::Internal {
-            code: "TOKEN_GENERATION_FAILED",
-            message: "failed to generate access token",
+    let result = use_case
+        .execute(payload.refresh_token)
+        .await
+        .map_err(|e| match e {
+            RefreshAccessTokenError::InvalidToken => ApiError::Unauthorized {
+                code: "INVALID_REFRESH_TOKEN",
+                message: "invalid or expired refresh token",
+            },
+            _ => ApiError::Internal {
+                code: "REFRESH_FAILED",
+                message: "failed to refresh token",
+            },
         })?;
 
     Ok(Json(ApiResponse::success(
         "TOKEN_REFRESHED",
         "token refreshed",
         RefreshResponse {
-            access_token,
+            access_token: result.access_token,
             refresh_token: result.refresh_token,
             token_type: "Bearer".to_string(),
         },

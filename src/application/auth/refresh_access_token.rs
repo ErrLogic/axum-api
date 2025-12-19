@@ -20,7 +20,7 @@ pub enum RefreshAccessTokenError {
 }
 
 pub struct RefreshResult {
-    pub user_id: Uuid,
+    pub access_token: String,
     pub refresh_token: String,
 }
 
@@ -88,8 +88,13 @@ impl RefreshAccessTokenUseCase {
             .await
             .map_err(|_| RefreshAccessTokenError::Unexpected)?;
 
+        let access_token = self
+            .jwt_service
+            .generate(user_id)
+            .map_err(|_| RefreshAccessTokenError::Unexpected)?;
+
         Ok(RefreshResult {
-            user_id,
+            access_token,
             refresh_token: new_value,
         })
     }

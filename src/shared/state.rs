@@ -8,6 +8,7 @@ use crate::{
     domain::user::repository::UserRepository,
     shared::config::AppConfig,
 };
+use crate::application::audit::audit_logger::AuditLogger;
 use crate::domain::auth::repository::RefreshTokenRepository;
 
 #[derive(Clone)]
@@ -19,4 +20,6 @@ pub struct AppState {
 
     pub password_hasher: Arc<dyn PasswordHasher>,
     pub jwt_service: Arc<dyn JwtService>,
+
+    pub audit_logger: Arc<AuditLogger>,
 }

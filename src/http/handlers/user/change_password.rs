@@ -25,6 +25,7 @@ pub async fn change_password(
         state.user_repo.clone(),
         state.refresh_token_repo.clone(),
         state.password_hasher.clone(),
+        state.audit_logger.clone(),
     );
 
 

@@ -1,22 +1,21 @@
-mod domain;
 mod application;
-mod infrastructure;
+mod domain;
 mod http;
+mod infrastructure;
 mod shared;
 
-use sqlx::postgres::PgPoolOptions;
-use shared::{config::AppConfig, state::AppState};
-use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use infrastructure::persistence::postgres_refresh_token_repository::PostgresRefreshTokenRepository;
+use shared::{config::AppConfig, state::AppState};
+use sqlx::postgres::PgPoolOptions;
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use std::sync::Arc;
 
+use crate::application::audit::audit_logger::AuditLogger;
+use crate::infrastructure::persistence::postgres_audit_log_repository::PostgresAuditLogRepository;
 use infrastructure::{
     persistence::postgres_user_repository::PostgresUserRepository,
-    security::{
-        argon2_hasher::Argon2PasswordHasher,
-        jwt_service::JwtServiceImpl,
-    },
+    security::{argon2_hasher::Argon2PasswordHasher, jwt_service::JwtServiceImpl},
 };
 
 #[tokio::main]
@@ -43,14 +42,15 @@ async fn main() {
         &config.jwt_secret,
         config.jwt_ttl_seconds,
     ));
-    let refresh_token_repo = Arc::new(
-        PostgresRefreshTokenRepository::new(db.clone())
-    );
+    let refresh_token_repo = Arc::new(PostgresRefreshTokenRepository::new(db.clone()));
+    let audit_repo = Arc::new(PostgresAuditLogRepository::new(db.clone()));
+    let audit_logger = Arc::new(AuditLogger::new(audit_repo));
 
     let state = AppState {
         config,
         user_repo,
         refresh_token_repo,
+        audit_logger,
         password_hasher,
         jwt_service,
     };

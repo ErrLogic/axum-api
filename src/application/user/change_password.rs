@@ -1,7 +1,9 @@
+use serde_json::json;
 use std::sync::Arc;
 use thiserror::Error;
 use uuid::Uuid;
 
+use crate::application::audit::audit_logger::AuditLogger;
 use crate::domain::auth::repository::RefreshTokenRepository;
 use crate::{
     application::security::{password_hasher::PasswordHasher, password_policy::PasswordPolicy},
@@ -33,6 +35,7 @@ pub struct ChangePasswordUseCase {
     repo: Arc<dyn UserRepository>,
     refresh_repo: Arc<dyn RefreshTokenRepository>,
     hasher: Arc<dyn PasswordHasher>,
+    audit: Arc<AuditLogger>,
 }
 
 impl ChangePasswordUseCase {
@@ -40,8 +43,14 @@ impl ChangePasswordUseCase {
         repo: Arc<dyn UserRepository>,
         refresh_repo: Arc<dyn RefreshTokenRepository>,
         hasher: Arc<dyn PasswordHasher>,
+        audit: Arc<AuditLogger>,
     ) -> Self {
-        Self { repo, refresh_repo, hasher }
+        Self {
+            repo,
+            refresh_repo,
+            hasher,
+            audit,
+        }
     }
 
     pub async fn execute(&self, cmd: ChangePasswordCommand) -> Result<(), ChangePasswordError> {
@@ -84,6 +93,10 @@ impl ChangePasswordUseCase {
             .revoke_by_user(cmd.user_id)
             .await
             .map_err(|_| ChangePasswordError::Unexpected)?;
+
+        self.audit
+            .log(Some(cmd.user_id), "CHANGE_PASSWORD", "user", json!({}))
+            .await;
 
         Ok(())
     }

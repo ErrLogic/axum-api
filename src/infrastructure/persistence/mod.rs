@@ -1,2 +1,3 @@
 pub mod postgres_user_repository;
 pub mod postgres_refresh_token_repository;
+pub mod postgres_audit_log_repository;
