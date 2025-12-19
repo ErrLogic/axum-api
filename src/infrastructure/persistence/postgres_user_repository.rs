@@ -115,4 +115,26 @@ impl UserRepository for PostgresUserRepository {
             }
         }
     }
+
+    async fn update(&self, user: &User) -> Result<(), UserRepositoryError> {
+        let result = sqlx::query(
+            r#"
+        UPDATE users
+        SET name = $2
+        WHERE id = $1
+        "#,
+        )
+            .bind(user.id())
+            .bind(user.name().value())
+            .execute(&self.pool)
+            .await
+            .map_err(|_| UserRepositoryError::Unknown)?;
+
+        if result.rows_affected() == 0 {
+            return Err(UserRepositoryError::NotFound);
+        }
+
+        Ok(())
+    }
+
 }

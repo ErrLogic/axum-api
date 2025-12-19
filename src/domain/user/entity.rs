@@ -40,4 +40,8 @@ impl User {
     pub fn password_hash(&self) -> &str {
         &self.password_hash
     }
+
+    pub fn rename(&mut self, name: UserName) {
+        self.name = name;
+    }
 }
