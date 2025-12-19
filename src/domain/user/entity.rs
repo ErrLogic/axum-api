@@ -44,4 +44,8 @@ impl User {
     pub fn rename(&mut self, name: UserName) {
         self.name = name;
     }
+
+    pub fn change_password(&mut self, new_password_hash: String) {
+        self.password_hash = new_password_hash;
+    }
 }
