@@ -9,6 +9,7 @@ use crate::{
     shared::{response::ApiResponse, state::AppState},
 };
 use crate::http::extractors::auth_user::AuthUser;
+use crate::http::extractors::client_context::ClientContext;
 
 #[derive(Debug, Deserialize)]
 pub struct ChangePasswordRequest {
@@ -18,6 +19,7 @@ pub struct ChangePasswordRequest {
 
 pub async fn change_password(
     State(state): State<AppState>,
+    client_ctx: ClientContext,
     AuthUser(auth): AuthUser,
     Json(payload): Json<ChangePasswordRequest>,
 ) -> Result<Json<ApiResponse<()>>, ApiError> {
@@ -34,6 +36,10 @@ pub async fn change_password(
             user_id: auth.user_id,
             current_password: payload.current_password,
             new_password: payload.new_password,
+            context: ClientContext {
+                ip: client_ctx.ip,
+                user_agent: client_ctx.user_agent,
+            },
         })
         .await
         .map_err(|e| match e {

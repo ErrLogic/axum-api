@@ -4,7 +4,9 @@ use thiserror::Error;
 use uuid::Uuid;
 
 use crate::application::audit::audit_logger::AuditLogger;
+use crate::domain::audit::action::AuditAction;
 use crate::domain::auth::repository::RefreshTokenRepository;
+use crate::http::extractors::client_context::ClientContext;
 use crate::{
     application::security::{password_hasher::PasswordHasher, password_policy::PasswordPolicy},
     domain::user::repository::UserRepository,
@@ -26,6 +28,7 @@ pub struct ChangePasswordCommand {
     pub user_id: Uuid,
     pub current_password: String,
     pub new_password: String,
+    pub context: ClientContext,
 }
 
 pub struct ChangePasswordUseCase {
@@ -57,30 +60,38 @@ impl ChangePasswordUseCase {
             .await
             .map_err(|_| ChangePasswordError::Unexpected)?;
 
-        // 1️⃣ verify current password
         let valid = self
             .hasher
             .verify(&cmd.current_password, user.password_hash())
             .map_err(|_| ChangePasswordError::Unexpected)?;
 
         if !valid {
+            self.audit
+                .log(
+                    Some(user.id()),
+                    AuditAction::ChangePasswordFailed.as_str(),
+                    "user",
+                    json!({
+                        "ip": cmd.context.ip,
+                        "user_agent": cmd.context.user_agent,
+                        "reason": "invalid_current_password",
+                    }),
+                )
+                .await;
+
             return Err(ChangePasswordError::InvalidCurrentPassword);
         }
 
-        // 2️⃣ password policy (RESULT-based)
         PasswordPolicy::validate(&cmd.new_password)
             .map_err(|_| ChangePasswordError::WeakPassword)?;
 
-        // 3️⃣ hash new password
         let new_hash = self
             .hasher
             .hash(&cmd.new_password)
             .map_err(|_| ChangePasswordError::Unexpected)?;
 
-        // 4️⃣ mutate domain
         user.change_password(new_hash);
 
-        // 5️⃣ persist
         self.repo
             .update(&user)
             .await
@@ -92,7 +103,15 @@ impl ChangePasswordUseCase {
             .map_err(|_| ChangePasswordError::Unexpected)?;
 
         self.audit
-            .log(Some(cmd.user_id), "CHANGE_PASSWORD", "user", json!({}))
+            .log(
+                Some(user.id()),
+                AuditAction::ChangePasswordSuccess.as_str(),
+                "user",
+                json!({
+                    "ip": cmd.context.ip,
+                    "user_agent": cmd.context.user_agent,
+                }),
+            )
             .await;
 
         Ok(())

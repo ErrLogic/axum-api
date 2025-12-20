@@ -1,10 +1,7 @@
-use axum::extract::ConnectInfo;
-use axum::http::HeaderMap;
 use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
-use std::net::SocketAddr;
 
-use crate::application::user::login_user::LoginContext;
+use crate::http::extractors::client_context::ClientContext;
 use crate::{
     application::user::login_user::{LoginUserCommand, LoginUserError, LoginUserUseCase},
     http::error::ApiError,
@@ -24,28 +21,9 @@ pub struct LoginResponse {
     pub token_type: String,
 }
 
-fn extract_login_context(headers: &HeaderMap, remote_addr: SocketAddr) -> LoginContext {
-    let ip = headers
-        .get("x-forwarded-for")
-        .and_then(|v| v.to_str().ok())
-        .map(|s| s.split(',').next().unwrap_or(s).to_string())
-        .unwrap_or_else(|| remote_addr.ip().to_string());
-
-    let user_agent = headers
-        .get("user-agent")
-        .and_then(|v| v.to_str().ok())
-        .map(|s| s.to_string());
-
-    LoginContext {
-        ip: Some(ip),
-        user_agent,
-    }
-}
-
 pub async fn login_user(
     State(state): State<AppState>,
-    headers: HeaderMap,
-    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    client_ctx: ClientContext,
     Json(payload): Json<LoginUserRequest>,
 ) -> Result<Json<ApiResponse<LoginResponse>>, ApiError> {
     let use_case = LoginUserUseCase::new(
@@ -59,7 +37,10 @@ pub async fn login_user(
     let cmd = LoginUserCommand {
         email: payload.email,
         password: payload.password,
-        context: extract_login_context(&headers, addr),
+        context: ClientContext {
+            ip: client_ctx.ip,
+            user_agent: client_ctx.user_agent,
+        },
     };
 
     let result = use_case.execute(cmd).await.map_err(|err| match err {

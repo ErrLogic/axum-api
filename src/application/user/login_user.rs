@@ -11,6 +11,7 @@ use serde_json::json;
 use std::sync::Arc;
 use thiserror::Error;
 use uuid::Uuid;
+use crate::http::extractors::client_context::ClientContext;
 
 #[derive(Debug, Error)]
 pub enum LoginUserError {
@@ -21,15 +22,10 @@ pub enum LoginUserError {
     Unexpected,
 }
 
-pub struct LoginContext {
-    pub ip: Option<String>,
-    pub user_agent: Option<String>,
-}
-
 pub struct LoginUserCommand {
     pub email: String,
     pub password: String,
-    pub context: LoginContext,
+    pub context: ClientContext,
 }
 
 pub struct LoginResult {
