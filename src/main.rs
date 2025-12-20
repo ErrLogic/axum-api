@@ -53,10 +53,9 @@ async fn main() {
         let redis_client =
             redis::Client::open(config.redis_url.as_str()).expect("Invalid REDIS_URL");
 
-        let redis_store =
-            RedisRateLimitStore::new(redis_client)
-                .await
-                .expect("Redis connection error");
+        let redis_store = RedisRateLimitStore::new(redis_client)
+            .await
+            .expect("failed to connect to redis");
 
         Arc::new(redis_store)
     } else {
@@ -78,8 +77,10 @@ async fn main() {
     let addr = state.config.http_addr;
     let listener = tokio::net::TcpListener::bind(addr)
         .await
-        .expect("failed to bind");
+        .expect("failed to bind address");
 
+    println!("🚀 Server up, listening on {}", addr);
+    
     axum::serve(
         listener,
         app.into_make_service_with_connect_info::<SocketAddr>(),
