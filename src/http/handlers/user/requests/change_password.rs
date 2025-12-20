@@ -10,6 +10,7 @@ use crate::{
 };
 use crate::http::extractors::auth_user::AuthUser;
 use crate::http::extractors::client_context::ClientContext;
+use crate::shared::{api_codes, api_messages};
 
 #[derive(Debug, Deserialize)]
 pub struct ChangePasswordRequest {
@@ -44,22 +45,22 @@ pub async fn change_password(
         .await
         .map_err(|e| match e {
             ChangePasswordError::InvalidCurrentPassword => ApiError::Unauthorized {
-                code: "INVALID_PASSWORD",
-                message: "current password is incorrect",
+                code: api_codes::validator::VALIDATION_ERROR,
+                message: api_messages::validator::INVALID_CURRENT_PASSWORD,
             },
             ChangePasswordError::WeakPassword => ApiError::Validation {
-                code: "WEAK_PASSWORD",
-                message: "password does not meet requirements",
+                code: api_codes::users::WEAK_PASSWORD,
+                message: api_messages::users::WEAK_PASSWORD,
                 errors: Default::default(),
             },
             _ => ApiError::Internal {
-                code: "CHANGE_PASSWORD_FAILED",
-                message: "failed to change password",
+                code: api_codes::users::CHANGE_PASSWORD_FAILED,
+                message: api_messages::users::CHANGE_PASSWORD_FAILED,
             },
         })?;
 
     Ok(Json(ApiResponse::empty_success(
-        "PASSWORD_CHANGED",
-        "password updated successfully",
+        api_codes::users::CHANGE_PASSWORD_SUCCESS,
+        api_messages::users::CHANGE_PASSWORD_SUCCESS,
     )))
 }

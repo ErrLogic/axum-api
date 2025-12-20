@@ -33,7 +33,6 @@ impl LogoutUseCase {
                 _ => LogoutError::Unexpected,
             })?;
 
-        // revoke token
         self.refresh_repo
             .revoke(token.id)
             .await

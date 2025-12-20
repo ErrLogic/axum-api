@@ -10,6 +10,7 @@ use crate::application::security::password_policy::PasswordPolicy;
 use crate::application::user::register_user::{
     RegisterUserCommand, RegisterUserError, RegisterUserUseCase,
 };
+use crate::shared::{api_codes, api_messages};
 
 #[derive(Debug, Deserialize)]
 pub struct RegisterUserRequest {
@@ -22,15 +23,14 @@ pub async fn register_user(
     State(state): State<AppState>,
     Json(payload): Json<RegisterUserRequest>,
 ) -> Result<Json<ApiResponse<()>>, ApiError> {
-    // 1️. Password policy (PLAINTEXT, BOUNDARY)
     PasswordPolicy::validate(&payload.password)
         .map_err(|_| ApiError::Validation {
-            code: "WEAK_PASSWORD",
-            message: "password does not meet security requirements",
+            code: api_codes::users::WEAK_PASSWORD,
+            message: api_messages::users::WEAK_PASSWORD,
             errors: [(
-                "password".to_string(),
-                vec!["password must be at least 8 characters".to_string()],
-            )]
+                        "password".to_string(),
+                        vec![api_messages::validator::INVALID_PASSWORD_FORMAT.to_string()],
+                    )]
                 .into_iter()
                 .collect(),
         })?;
@@ -39,16 +39,14 @@ pub async fn register_user(
         .password_hasher
         .hash(&payload.password)
         .map_err(|_| ApiError::Internal {
-            code: "HASHING_FAILED",
-            message: "failed to process password",
+            code: api_codes::auth::HASHING_FAILED,
+            message: api_messages::auth::HASHING_FAILED,
         })?;
 
-    // 3. Build use case
     let use_case = RegisterUserUseCase::new(
         state.user_repo.clone(),
     );
     
-    // 4. Execute
     let cmd = RegisterUserCommand {
         name: payload.name,
         email: payload.email,
@@ -57,22 +55,22 @@ pub async fn register_user(
 
     use_case.execute(cmd).await.map_err(|err| match err {
         RegisterUserError::EmailAlreadyExists => ApiError::BadRequest {
-            code: "EMAIL_ALREADY_EXISTS",
-            message: "email already registered",
+            code: api_codes::auth::EMAIL_ALREADY_EXISTS,
+            message: api_messages::auth::EMAIL_ALREADY_EXISTS,
         },
         RegisterUserError::InvalidUserData => ApiError::Validation {
-            code: "VALIDATION_ERROR",
-            message: "invalid user data",
+            code: api_codes::validator::VALIDATION_ERROR,
+            message: api_messages::validator::INVALID_USER_DATA,
             errors: std::collections::HashMap::new(),
         },
         _ => ApiError::Internal {
-            code: "REGISTER_USER_FAILED",
-            message: "failed to register user",
+            code: api_codes::auth::REGISTER_USER_FAILED,
+            message: api_messages::auth::REGISTER_USER_FAILED,
         },
     })?;
 
     Ok(Json(ApiResponse::empty_success(
-        "USER_REGISTERED",
-        "user registered successfully",
+        api_codes::auth::REGISTER_USER_SUCCESS,
+        api_messages::auth::REGISTER_USER_SUCCESS,
     )))
 }

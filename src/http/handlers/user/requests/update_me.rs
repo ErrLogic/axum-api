@@ -9,6 +9,7 @@ use crate::{
     shared::{response::ApiResponse, state::AppState},
 };
 use crate::http::extractors::auth_user::AuthUser;
+use crate::shared::{api_codes, api_messages};
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateMeRequest {
@@ -30,22 +31,22 @@ pub async fn update_me(
         .await
         .map_err(|e| match e {
             UpdateProfileError::UserNotFound => ApiError::NotFound {
-                code: "USER_NOT_FOUND",
-                message: "user not found",
+                code: api_codes::users::USER_NOT_FOUND,
+                message: api_messages::users::USER_NOT_FOUND,
             },
             UpdateProfileError::InvalidData => ApiError::Validation {
-                code: "INVALID_DATA",
-                message: "invalid profile data",
+                code: api_codes::validator::VALIDATION_ERROR,
+                message: api_messages::validator::INVALID_PROFILE_DATA,
                 errors: Default::default(),
             },
             _ => ApiError::Internal {
-                code: "UPDATE_PROFILE_FAILED",
-                message: "failed to update profile",
+                code: api_codes::users::UPDATE_PROFILE_FAILED,
+                message: api_messages::users::UPDATE_PROFILE_FAILED,
             },
         })?;
 
     Ok(Json(ApiResponse::empty_success(
-        "PROFILE_UPDATED",
-        "profile updated",
+        api_codes::users::UPDATE_PROFILE_SUCCESS,
+        api_messages::users::UPDATE_PROFILE_SUCCESS,
     )))
 }

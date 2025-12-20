@@ -7,8 +7,9 @@ use crate::{
     shared::response::ApiResponse,
 };
 use crate::application::user::get_current_user::GetCurrentUserError;
+use crate::http::handlers::user::responses::me_response::MeResponse;
+use crate::shared::{api_codes, api_messages};
 use crate::shared::state::AppState;
-use super::me_response::MeResponse;
 
 pub async fn me(
     AuthUser(auth): AuthUser,
@@ -24,18 +25,18 @@ pub async fn me(
         .await
         .map_err(|err| match err {
             GetCurrentUserError::NotFound => ApiError::NotFound {
-                code: "USER_NOT_FOUND",
-                message: "user not found",
+                code: api_codes::users::USER_NOT_FOUND,
+                message: api_messages::users::USER_NOT_FOUND,
             },
             _ => ApiError::Internal {
-                code: "GET_ME_FAILED",
-                message: "failed to fetch user",
+                code: api_codes::users::GET_CURRENT_USER_FAILED,
+                message: api_messages::users::GET_CURRENT_USER_FAILED,
             },
         })?;
 
     Ok(Json(ApiResponse::success(
-        "ME",
-        "current user",
+        api_codes::users::GET_CURRENT_USER_SUCCESS,
+        api_messages::users::GET_CURRENT_USER_SUCCESS,
         user.into(),
     )))
 }

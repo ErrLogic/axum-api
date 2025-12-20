@@ -9,6 +9,7 @@ use crate::{
     http::{auth_context::AuthContext, error::ApiError},
     shared::state::AppState,
 };
+use crate::shared::{api_codes, api_messages};
 
 pub async fn auth_middleware(
     State(state): State<AppState>,
@@ -20,33 +21,32 @@ pub async fn auth_middleware(
         .headers()
         .get(axum::http::header::AUTHORIZATION)
         .ok_or(ApiError::Unauthorized {
-            code: "UNAUTHORIZED",
-            message: "missing authorization header",
+            code: api_codes::auth::UNAUTHORIZED,
+            message: api_messages::auth::UNAUTHORIZED_MISSING_HEADER,
         })?;
 
     let auth_header = auth_header
         .to_str()
         .map_err(|_| ApiError::Unauthorized {
-            code: "UNAUTHORIZED",
-            message: "invalid authorization header",
+            code: api_codes::auth::UNAUTHORIZED,
+            message: api_messages::auth::UNAUTHORIZED_INVALID_HEADER,
         })?;
 
     let token = auth_header
         .strip_prefix("Bearer ")
         .ok_or(ApiError::Unauthorized {
-            code: "UNAUTHORIZED",
-            message: "invalid authorization header",
+            code: api_codes::auth::UNAUTHORIZED,
+            message: api_messages::auth::UNAUTHORIZED_INVALID_HEADER,
         })?;
 
     let claims = state
         .jwt_service
         .verify(token)
         .map_err(|_| ApiError::Unauthorized {
-            code: "INVALID_TOKEN",
-            message: "invalid or expired token",
+            code: api_codes::auth::UNAUTHORIZED,
+            message: api_messages::auth::UNAUTHORIZED_INVALID_TOKEN,
         })?;
 
-    // 🔐 HARDENING: attach user_id to request context
     req.extensions_mut().insert(AuthContext {
         user_id: claims.sub,
     });

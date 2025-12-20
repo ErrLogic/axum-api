@@ -14,11 +14,6 @@ impl PasswordPolicy {
             return Err(PasswordPolicyError::WeakPassword);
         }
 
-        // nanti gampang ditambah:
-        // - uppercase
-        // - number
-        // - symbol
-
         Ok(())
     }
 }

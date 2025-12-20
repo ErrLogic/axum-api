@@ -40,21 +40,18 @@ impl RegisterUserUseCase {
         &self,
         cmd: RegisterUserCommand,
     ) -> Result<User, RegisterUserError> {
-        // 1. Build value objects (domain invariant)
         let name = UserName::new(cmd.name)
             .map_err(|_| RegisterUserError::InvalidUserData)?;
 
         let email = UserEmail::new(cmd.email)
             .map_err(|_| RegisterUserError::InvalidUserData)?;
 
-        // 2. Check uniqueness
         match self.repo.find_by_email(email.value()).await {
             Ok(_) => return Err(RegisterUserError::EmailAlreadyExists),
             Err(UserRepositoryError::NotFound) => {}
             Err(_) => return Err(RegisterUserError::RepositoryError),
         }
 
-        // 3. Create entity
         let user = User::register(
             Uuid::now_v7(),
             name,
@@ -62,7 +59,6 @@ impl RegisterUserUseCase {
             cmd.password_hash,
         );
 
-        // 4. Persist
         self.repo
             .save(&user)
             .await

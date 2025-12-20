@@ -47,7 +47,6 @@ impl RefreshAccessTokenUseCase {
         &self,
         token_value: String,
     ) -> Result<RefreshResult, RefreshAccessTokenError> {
-        // 1) Find token
         let token = self
             .refresh_repo
             .find_by_token(&token_value)
@@ -57,20 +56,17 @@ impl RefreshAccessTokenUseCase {
                 _ => RefreshAccessTokenError::Unexpected,
             })?;
 
-        // 2) Validate domain
         if !token.is_valid() {
             return Err(RefreshAccessTokenError::InvalidToken);
         }
 
         let user_id = token.user_id;
 
-        // 3) Revoke old token
         self.refresh_repo
             .revoke(token.id)
             .await
             .map_err(|_| RefreshAccessTokenError::Unexpected)?;
 
-        // 4) Generate new refresh token
         let mut buf = [0u8; 32];
         rng().fill_bytes(&mut buf);
         let new_value = general_purpose::STANDARD.encode(buf);

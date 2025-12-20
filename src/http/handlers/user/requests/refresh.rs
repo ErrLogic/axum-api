@@ -8,6 +8,7 @@ use crate::http::error::ApiError;
 use crate::application::auth::refresh_access_token::{
     RefreshAccessTokenUseCase, RefreshAccessTokenError,
 };
+use crate::shared::{api_codes, api_messages};
 
 #[derive(Debug, Deserialize)]
 pub struct RefreshRequest {
@@ -37,18 +38,18 @@ pub async fn refresh_token(
         .await
         .map_err(|e| match e {
             RefreshAccessTokenError::InvalidToken => ApiError::Unauthorized {
-                code: "INVALID_REFRESH_TOKEN",
-                message: "invalid or expired refresh token",
+                code: api_codes::auth::INVALID_REFRESH_TOKEN,
+                message: api_messages::auth::INVALID_REFRESH_TOKEN,
             },
             _ => ApiError::Internal {
-                code: "REFRESH_FAILED",
-                message: "failed to refresh token",
+                code: api_codes::auth::REFRESH_TOKEN_FAILED,
+                message: api_messages::auth::REFRESH_TOKEN_FAILED,
             },
         })?;
 
     Ok(Json(ApiResponse::success(
-        "TOKEN_REFRESHED",
-        "token refreshed",
+        api_codes::auth::REFRESH_TOKEN_SUCCESS,
+        api_messages::auth::REFRESH_TOKEN_SUCCESS,
         RefreshResponse {
             access_token: result.access_token,
             refresh_token: result.refresh_token,

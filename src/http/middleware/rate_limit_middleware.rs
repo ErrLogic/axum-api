@@ -5,6 +5,7 @@ use crate::http::middleware::rate_limit_key::extract_client_identifier;
 use crate::http::middleware::rate_limit_policy::policy_for_path;
 use crate::shared::state::AppState;
 use axum::body::Body;
+use crate::shared::{api_codes, api_messages};
 
 pub async fn rate_limit_middleware(
     State(state): State<AppState>,
@@ -27,8 +28,8 @@ pub async fn rate_limit_middleware(
 
     if !allowed {
         return ApiError::TooManyRequests {
-            code: "RATE_LIMIT_EXCEEDED",
-            message: "too many requests",
+            code: api_codes::auth::RATE_LIMIT_EXCEEDED,
+            message: api_messages::auth::RATE_LIMIT_EXCEEDED,
         }
         .into_response();
     }

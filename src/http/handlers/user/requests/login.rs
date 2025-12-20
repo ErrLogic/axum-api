@@ -2,6 +2,7 @@ use axum::{extract::State, Json};
 use serde::{Deserialize, Serialize};
 
 use crate::http::extractors::client_context::ClientContext;
+use crate::shared::{api_codes, api_messages};
 use crate::{
     application::user::login_user::{LoginUserCommand, LoginUserError, LoginUserUseCase},
     http::error::ApiError,
@@ -45,12 +46,12 @@ pub async fn login_user(
 
     let result = use_case.execute(cmd).await.map_err(|err| match err {
         LoginUserError::InvalidCredentials => ApiError::Unauthorized {
-            code: "INVALID_CREDENTIALS",
-            message: "invalid email or password",
+            code: api_codes::auth::INVALID_CREDENTIALS,
+            message: api_messages::auth::INVALID_CREDENTIALS,
         },
         _ => ApiError::Internal {
-            code: "LOGIN_FAILED",
-            message: "failed to login",
+            code: api_codes::auth::LOGIN_FAILED,
+            message: api_messages::auth::LOGIN_FAILED,
         },
     })?;
 
@@ -59,13 +60,13 @@ pub async fn login_user(
             .jwt_service
             .generate(result.user_id)
             .map_err(|_| ApiError::Internal {
-                code: "TOKEN_GENERATION_FAILED",
-                message: "failed to generate access token",
+                code: api_codes::auth::TOKEN_GENERATION_FAILED,
+                message: api_messages::auth::TOKEN_GENERATION_FAILED,
             })?;
 
     Ok(Json(ApiResponse::success(
-        "LOGIN_SUCCESS",
-        "login successful",
+        api_codes::auth::LOGIN_SUCCESS,
+        api_messages::auth::LOGIN_SUCCESS,
         LoginResponse {
             access_token,
             refresh_token: result.refresh_token,

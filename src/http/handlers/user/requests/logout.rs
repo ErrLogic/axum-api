@@ -5,6 +5,7 @@ use crate::shared::state::AppState;
 use crate::shared::response::ApiResponse;
 use crate::http::error::ApiError;
 use crate::application::auth::logout::{LogoutUseCase, LogoutError};
+use crate::shared::{api_codes, api_messages};
 
 #[derive(Debug, Deserialize)]
 pub struct LogoutRequest {
@@ -22,17 +23,17 @@ pub async fn logout(
 
     use_case.execute(payload.refresh_token).await.map_err(|e| match e {
         LogoutError::InvalidToken => ApiError::Unauthorized {
-            code: "INVALID_REFRESH_TOKEN",
-            message: "invalid refresh token",
+            code: api_codes::auth::INVALID_REFRESH_TOKEN,
+            message: api_messages::auth::INVALID_REFRESH_TOKEN,
         },
         _ => ApiError::Internal {
-            code: "LOGOUT_FAILED",
-            message: "failed to logout",
+            code: api_codes::auth::LOGOUT_FAILED,
+            message: api_messages::auth::LOGOUT_FAILED,
         },
     })?;
 
     Ok(Json(ApiResponse::empty_success(
-        "LOGOUT_SUCCESS",
-        "logout successful",
+        api_codes::auth::LOGOUT_SUCCESS,
+        api_messages::auth::LOGOUT_SUCCESS,
     )))
 }

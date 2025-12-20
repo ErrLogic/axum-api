@@ -1,10 +1,10 @@
 use axum::Json;
-
+use crate::shared::{api_codes, api_messages};
 use crate::shared::response::ApiResponse;
 
 pub async fn health_check() -> Json<ApiResponse<()>> {
     Json(ApiResponse::empty_success(
-        "HEALTH_OK",
-        "Service is running",
+        api_codes::health::HEALTH_OK,
+        api_messages::health::HEALTH_OK,
     ))
 }

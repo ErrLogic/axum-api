@@ -2,7 +2,6 @@ use uuid::Uuid;
 
 pub struct JwtClaims {
     pub sub: Uuid,
-    /// exp already validated by jwt lib, kept for audit/logging
     pub exp: i64,
 }
 
