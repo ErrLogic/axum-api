@@ -33,6 +33,10 @@ pub enum ApiError {
         code: &'static str,
         message: &'static str,
     },
+    TooManyRequests {
+        code: &'static str,
+        message: &'static str,
+    }
 }
 
 impl IntoResponse for ApiError {
@@ -77,6 +81,11 @@ impl IntoResponse for ApiError {
             ApiError::Internal { code, message } => {
                 let body = ApiErrorResponse::simple(code, message);
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(body)).into_response()
+            }
+
+            ApiError::TooManyRequests { code, message } => {
+                let body = ApiErrorResponse::simple(code, message);
+                (StatusCode::TOO_MANY_REQUESTS, Json(body)).into_response()
             }
         }
     }

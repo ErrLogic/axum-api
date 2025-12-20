@@ -4,16 +4,17 @@ mod http;
 mod infrastructure;
 mod shared;
 
-use std::net::SocketAddr;
 use infrastructure::persistence::postgres_refresh_token_repository::PostgresRefreshTokenRepository;
 use shared::{config::AppConfig, state::AppState};
 use sqlx::postgres::PgPoolOptions;
+use std::net::SocketAddr;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 use std::sync::Arc;
 
 use crate::application::audit::audit_logger::AuditLogger;
 use crate::infrastructure::persistence::postgres_audit_log_repository::PostgresAuditLogRepository;
+use crate::infrastructure::rate_limit::in_memory_store::InMemoryRateLimitStore;
 use infrastructure::{
     persistence::postgres_user_repository::PostgresUserRepository,
     security::{argon2_hasher::Argon2PasswordHasher, jwt_service::JwtServiceImpl},
@@ -46,6 +47,7 @@ async fn main() {
     let refresh_token_repo = Arc::new(PostgresRefreshTokenRepository::new(db.clone()));
     let audit_repo = Arc::new(PostgresAuditLogRepository::new(db.clone()));
     let audit_logger = Arc::new(AuditLogger::new(audit_repo));
+    let rate_limit_store = Arc::new(InMemoryRateLimitStore::new());
 
     let state = AppState {
         config,
@@ -54,6 +56,7 @@ async fn main() {
         audit_logger,
         password_hasher,
         jwt_service,
+        rate_limit_store
     };
 
     let app = http::routes::create_router(state.clone());
@@ -63,5 +66,10 @@ async fn main() {
         .await
         .expect("failed to bind");
 
-    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>(),).await.unwrap();
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    .unwrap();
 }
