@@ -4,6 +4,7 @@ mod http;
 mod infrastructure;
 mod shared;
 
+use std::net::SocketAddr;
 use infrastructure::persistence::postgres_refresh_token_repository::PostgresRefreshTokenRepository;
 use shared::{config::AppConfig, state::AppState};
 use sqlx::postgres::PgPoolOptions;
@@ -62,5 +63,5 @@ async fn main() {
         .await
         .expect("failed to bind");
 
-    axum::serve(listener, app).await.unwrap();
+    axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>(),).await.unwrap();
 }
