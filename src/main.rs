@@ -13,8 +13,10 @@ use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 use std::sync::Arc;
 
 use crate::application::audit::audit_logger::AuditLogger;
+use crate::domain::rate_limit::store::RateLimitStore;
 use crate::infrastructure::persistence::postgres_audit_log_repository::PostgresAuditLogRepository;
 use crate::infrastructure::rate_limit::in_memory_store::InMemoryRateLimitStore;
+use crate::infrastructure::rate_limit::redis_store::RedisRateLimitStore;
 use infrastructure::{
     persistence::postgres_user_repository::PostgresUserRepository,
     security::{argon2_hasher::Argon2PasswordHasher, jwt_service::JwtServiceImpl},
@@ -47,7 +49,19 @@ async fn main() {
     let refresh_token_repo = Arc::new(PostgresRefreshTokenRepository::new(db.clone()));
     let audit_repo = Arc::new(PostgresAuditLogRepository::new(db.clone()));
     let audit_logger = Arc::new(AuditLogger::new(audit_repo));
-    let rate_limit_store = Arc::new(InMemoryRateLimitStore::new());
+    let rate_limit_store: Arc<dyn RateLimitStore> = if config.use_redis_rate_limit {
+        let redis_client =
+            redis::Client::open(config.redis_url.as_str()).expect("Invalid REDIS_URL");
+
+        let redis_store =
+            RedisRateLimitStore::new(redis_client)
+                .await
+                .expect("Redis connection error");
+
+        Arc::new(redis_store)
+    } else {
+        Arc::new(InMemoryRateLimitStore::new())
+    };
 
     let state = AppState {
         config,
@@ -56,7 +70,7 @@ async fn main() {
         audit_logger,
         password_hasher,
         jwt_service,
-        rate_limit_store
+        rate_limit_store,
     };
 
     let app = http::routes::create_router(state.clone());

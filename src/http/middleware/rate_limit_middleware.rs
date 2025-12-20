@@ -1,14 +1,10 @@
-use axum::{
-    extract::State,
-    http::Request,
-    middleware::Next,
-    response::IntoResponse,
-};
+use axum::{extract::State, http::Request, middleware::Next, response::IntoResponse};
 
-use std::time::Duration;
-use axum::body::Body;
-use crate::shared::state::AppState;
 use crate::http::error::ApiError;
+use crate::http::middleware::rate_limit_key::extract_client_identifier;
+use crate::http::middleware::rate_limit_policy::policy_for_path;
+use crate::shared::state::AppState;
+use axum::body::Body;
 
 pub async fn rate_limit_middleware(
     State(state): State<AppState>,
@@ -17,33 +13,24 @@ pub async fn rate_limit_middleware(
 ) -> impl IntoResponse {
     let path = req.uri().path();
 
-    let (limit, window) = match path {
-        "/auth/login" => (5, Duration::from_secs(60)),
-        "/auth/logout" => (5, Duration::from_secs(60)),
-        "/auth/refresh" => (10, Duration::from_secs(60)),
-        "/auth/register" => (10, Duration::from_secs(60)),
-        "/users/me/change-password" => (10, Duration::from_secs(60)),
-        _ => return next.run(req).await,
+    let Some(rule) = policy_for_path(path) else {
+        return next.run(req).await;
     };
 
-    let ip = req
-        .extensions()
-        .get::<std::net::SocketAddr>()
-        .map(|a| a.ip().to_string())
-        .unwrap_or_else(|| "unknown".to_string());
-
-    let key = format!("{}:{}", path, ip);
+    let key = format!("rl:{}:{}", path, extract_client_identifier(&req));
 
     let allowed = state
         .rate_limit_store
-        .check(key, limit, window);
+        .check(key, rule.limit, rule.window)
+        .await
+        .unwrap_or(false);
 
     if !allowed {
         return ApiError::TooManyRequests {
-            code: "RATE_LIMITED",
-            message: "too many requests, slow down",
+            code: "RATE_LIMIT_EXCEEDED",
+            message: "too many requests",
         }
-            .into_response();
+        .into_response();
     }
 
     next.run(req).await
