@@ -14,8 +14,4 @@ impl RefreshToken {
     pub fn is_valid(&self) -> bool {
         self.revoked_at.is_none() && self.expires_at > Utc::now()
     }
-
-    pub fn revoke(&mut self) {
-        self.revoked_at = Some(Utc::now());
-    }
 }

@@ -19,9 +19,6 @@ pub enum RegisterUserError {
 
     #[error("repository error")]
     RepositoryError,
-
-    #[error("unexpected error")]
-    Unexpected,
 }
 
 pub struct RegisterUserCommand {

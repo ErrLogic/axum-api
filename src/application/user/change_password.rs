@@ -18,9 +18,6 @@ pub enum ChangePasswordError {
     #[error("weak password")]
     WeakPassword,
 
-    #[error("user not found")]
-    UserNotFound,
-
     #[error("unexpected error")]
     Unexpected,
 }
