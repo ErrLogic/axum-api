@@ -1,0 +1,20 @@
+name: axum-api-service
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: axum-api:latest
+    container_name: axum-api-container
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - app-network
+networks:
+  app-network:
+    external: true
