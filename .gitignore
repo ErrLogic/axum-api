@@ -2,4 +2,3 @@
 .idea
 .sqlx
 .env
-/logs/*.log
