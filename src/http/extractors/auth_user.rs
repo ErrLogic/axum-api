@@ -6,6 +6,7 @@ use axum::{
 
 use crate::http::auth_context::AuthContext;
 use crate::http::error::ApiError;
+use crate::shared::{api_codes, api_messages};
 
 pub struct AuthUser(pub AuthContext);
 
@@ -24,8 +25,8 @@ where
             .get::<AuthContext>()
             .cloned()
             .ok_or(ApiError::Unauthorized {
-                code: "UNAUTHORIZED",
-                message: "authentication required",
+                code: api_codes::auth::UNAUTHORIZED,
+                message: api_messages::auth::UNAUTHORIZED,
             });
 
         ready(ctx.map(AuthUser))

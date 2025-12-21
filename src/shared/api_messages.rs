@@ -3,6 +3,7 @@ pub mod health {
 }
 
 pub mod auth {
+    pub const UNAUTHORIZED: &str = "authentication required";
     pub const UNAUTHORIZED_MISSING_HEADER: &str = "missing authorization header";
     pub const UNAUTHORIZED_INVALID_HEADER: &str = "invalid authorization header";
     pub const UNAUTHORIZED_INVALID_TOKEN: &str = "invalid or expired token";
